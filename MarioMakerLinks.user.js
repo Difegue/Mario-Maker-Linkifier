@@ -15,7 +15,8 @@
 // @grant        GM_openInTab
 // @grant        GM_xmlhttpRequest
 // @run-at       document-start
-// @icon         http://a.pomf.cat/eseovk.png
+// @icon         https://raw.githubusercontent.com/Difegue/Mario-Maker-Linkifier/master/icon.png
+// @updateURL    https://github.com/Difegue/Mario-Maker-Linkifier/raw/master/MarioMakerLinks.user.js
 // ==/UserScript==
 
 //Maximum number of simultaneous requests to bookmark website. You can up this if your browser handles it.
