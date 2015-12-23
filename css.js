@@ -16,6 +16,10 @@ function addCss() {
             border-top-right-radius:10px; \
             border-bottom-left-radius:10px; \
             border-bottom-right-radius:10px; \
+            font-size: 14px; \
+            line-height: 1; \
+            text-align: left; \
+            
             } \
         .panelTop { height:186px; border-top-left-radius:10px;border-top-right-radius:10px; } \
         .panelThumb { width:248px;height:186px;} \
@@ -93,19 +97,19 @@ function buildPopup(courseID,courseName,levelDiff,clearPercent,clears,clearedByP
 
     switch (levelDiff) {
     case "Easy":
-        bannerCol = panelGreen;
+        bannerCol = "panelGreen";
         break;
     case "Normal":
-        bannerCol = panelBlue;
+        bannerCol = "panelBlue";
         break;
     case "Expert":
-        bannerCol = panelPink;
+        bannerCol = "panelPink";
         break;
     case "Super Expert":
-        bannerCol = panelRed;
+        bannerCol = "panelRed";
         break;
     default:
-        bannerCol = panelOrange;
+        bannerCol = "panelOrange";
         break;
     }
 
@@ -116,12 +120,12 @@ function buildPopup(courseID,courseName,levelDiff,clearPercent,clears,clearedByP
                 <img class="panelThumb" alt="'+courseID+'" src="https://dypqnhofrd2x2.cloudfront.net/'+courseID+'.jpg"> \
             </div> \
  \
-            <div class="courseBanner">"'+levelDiff+'" - "'+clearPercent+'"</div> \
+            <div class="courseBanner">'+levelDiff+' - '+clearPercent+'%</div> \
             <div class="courseStats"> \
                  \
                 <div class="courseStatBlock fleft" style="width: 200px; font-size: 20px; height: 29px;  margin-top: 4px;"> \
                     <div style="display:inline-block; margin-top: 4px;">Clears</div> \
-                    <div class="courseStat courseClears" style="display:inline-block; font-size: 20px">"'+clears+'"</div> \
+                    <div class="courseStat courseClears" style="display:inline-block; font-size: 20px">'+clears+'</div> \
                 </div> \
 \
                 <div class="fclear"></div>\

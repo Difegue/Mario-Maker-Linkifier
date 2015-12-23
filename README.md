@@ -1,4 +1,5 @@
 ![screenshot](http://a.pomf.cat/jbtdvv.png)
+
 # Mario Maker Linkifier
 Adds a few features to Mario Maker Bookmark links.  
 
@@ -7,6 +8,8 @@ What this does :
 - Adds a bookmark button, allowing you to bookmark/unbookmark a stage without visiting the bookmark website.  
 - Crazy aesthetic popups  
 - Works on every site! 4chan, reddit, gameFAQs, miiverse, you name it we got it. (It might even work on too many things. Be sure to disable the script on pages where it bothers you)  
+
+![screenshot](http://a.pomf.cat/boqipq.png)  
 
 ## Install(I'm just ripping this off the 4chanX install guide)
 
