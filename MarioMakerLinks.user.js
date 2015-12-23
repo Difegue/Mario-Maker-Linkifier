@@ -37,25 +37,28 @@ var bookmarkicon = 'https://raw.githubusercontent.com/Difegue/Mario-Maker-Linkif
 var bookmarkedicon = 'https://raw.githubusercontent.com/Difegue/Mario-Maker-Linkifier/master/iconbookmarked.png';
 var unbookmarkicon = 'https://raw.githubusercontent.com/Difegue/Mario-Maker-Linkifier/master/iconunbookmark.png';
 
-//Get a token for sending requests.
-function marioMakerGetCSRFToken(courseID) {
+//Get a token for sending requests and call a function that needs it.
+function marioMakerGetCSRFToken(courseID,callback) {
+
+  tokenURL = "http://supermariomakerbookmark.nintendo.net/courses/"+courseID
+  console.log("grabbing token from "+tokenURL);
 
   //First, load the courseURL page and grab a CSRF token.
   GM_xmlhttpRequest({
        method: "GET",
-       url: "https://supermariomakerbookmark.nintendo.net/courses/"+courseID,
+       url: tokenURL,
        onload: function(xhr) {
 
           var result = xhr.responseText;
           //console.log("> ", data.contents);
-          //console.log($.parseHTML(result));
+          console.log($.parseHTML(result));
           var parsed = $('<div/>').append(result);
 
           var token = "";
           token = parsed.find('meta[name="csrf-token"]').attr('content');
 
-          if (token !="")
-            return token;
+          if (token !="") //Once we have the token, pass it to the function that needs it.
+            callback(token);
           else
               {
               alert("Couldn't get token. Please make sure you're logged in to the Mario Maker Bookmark website.");
@@ -74,13 +77,15 @@ function marioMakerGetCSRFToken(courseID) {
 
 
 //Bookmarks a course.
-function marioMakerBookmark(courseID) {
+function marioMakerBookmark(courseID,callback) {
 
-  //make a POST request to https://supermariomakerbookmark.nintendo.net/courses/[courseID]/play_at_later.
-  postURL = "https://supermariomakerbookmark.nintendo.net/courses/"+courseID+"/play_at_later";
-  token = marioMakerGetCSRFToken(courseID);
+  marioMakerGetCSRFToken(courseID, function(token){
 
-      if (token!=0)
+    //make a POST request to https://supermariomakerbookmark.nintendo.net/courses/[courseID]/play_at_later.
+    postURL = "https://supermariomakerbookmark.nintendo.net/courses/"+courseID+"/play_at_later";
+    console.log("bookmarking with token "+token);
+
+      if (token!=0 && token!=undefined)
               GM_xmlhttpRequest({
                    method: "POST",
                    url: postURL,
@@ -89,12 +94,13 @@ function marioMakerBookmark(courseID) {
                       "Accept": "application/json",
                       "Accept-Encoding": "gzip, deflate",
                       "Pragma": "no-cache",
-                      "Referer": courseURL,
+                      "Referer": "https://supermariomakerbookmark.nintendo.net/bookmarks/"+courseID,
                       "Host": "supermariomakerbookmark.nintendo.net",
                       "X-CSRF-Token": token,
                       "X-Requested-With": "XMLHttpRequest",
                     },
                    onload: function(xhr) {
+                      callback();
                       return 1;
                    },
                    onerror: function(xhr) {
@@ -102,17 +108,22 @@ function marioMakerBookmark(courseID) {
                       return 0;
                    }
               });
+
+
+  });
           
 }
 
 //Unbookmark a course.
-function marioMakerUnbookmark(courseID) {
+function marioMakerUnbookmark(courseID,callback) {
 
-  //make a DELETE request to https://supermariomakerbookmark.nintendo.net
-  deleteURL = "https://supermariomakerbookmark.nintendo.net/bookmarks/"+courseID;
-  token = marioMakerGetCSRFToken(courseID);
 
-      if (token!=0)
+  marioMakerGetCSRFToken(courseID, function(token){
+
+    //make a DELETE request to https://supermariomakerbookmark.nintendo.net
+    deleteURL = "https://supermariomakerbookmark.nintendo.net/bookmarks/"+courseID;
+
+      if (token!=0 && token!=undefined)
               GM_xmlhttpRequest({
                    method: "DELETE",
                    url: deleteURL,
@@ -121,12 +132,13 @@ function marioMakerUnbookmark(courseID) {
                       "Accept": "application/json",
                       "Accept-Encoding": "gzip, deflate",
                       "Pragma": "no-cache",
-                      "Referer": courseURL,
+                      "Referer": "https://supermariomakerbookmark.nintendo.net/bookmarks/"+courseID,
                       "Host": "supermariomakerbookmark.nintendo.net",
                       "X-CSRF-Token": token,
                       "X-Requested-With": "XMLHttpRequest",
                     },
                    onload: function(xhr) {
+                      callback();
                       return 1;
                    },
                    onerror: function(xhr) {
@@ -134,6 +146,7 @@ function marioMakerUnbookmark(courseID) {
                       return 0;
                    }
               });
+  });
 
 }
 
@@ -161,9 +174,6 @@ function marioMakerCreateLink(courseHTMLNode) {
 
         var result = xhr.responseText;
         
-        
-        //console.log("> ", data.contents);
-        //console.log($.parseHTML(result));
         var parsed = $('<div/>').append(result);
         
         var course = parsed.find(".course-title");
@@ -172,14 +182,24 @@ function marioMakerCreateLink(courseHTMLNode) {
                 courseHTMLNode.textContent = "Course deleted.";
                 $(courseHTMLNode).attr('smmprocessed','true');
             }
-        else
+        else //Course exists, let's get some info ! 
             {
             var courseTitle = course.text();
             var courseMaker = parsed.find(".name")[0].innerHTML;
             var courseDiffLevel = parsed.find(".course-header").text().trim().substring(1);
+            var isBookmarked = parsed.find(".button.playlist.off").hasClass("disabled");
             
+            console.log(parsed.find(".button .playlist .off"));
+
             if (courseDiffLevel == "")
                 courseDiffLevel = "Unrated";
+
+            if (isBookmarked)
+            {
+              //we can change the bookmarked setting of the <a> button appropriately.
+              changeIconBookmark($(courseHTMLNode).next());
+
+            }
        
             //console.log("got info: "+courseTitle+" ("+courseDiffLevel+") by "+courseMaker);
             
@@ -190,7 +210,6 @@ function marioMakerCreateLink(courseHTMLNode) {
             
         //Request is done
         currentRequests--;
-        totalRequests--;
         
         },
      onerror: function(xhr) {
@@ -260,6 +279,27 @@ function replaceInText(text, find, replace) {
     }
 }
 
+//Changes images and states of the bookmark button given as a parameter.
+function changeIconBookmark(node) {
+
+   $(node).find('img').attr('src',bookmarkedicon);
+   $(node).find('img').attr('title',"Unbookmark this level");
+   $(node).find('img').attr('alt',"Unbookmark");
+   $(node).attr('bookmarkstate',1);
+   $(node).find('img').hover(function(){$(this).attr('src',unbookmarkicon);}, function(){$(this).attr('src',bookmarkedicon);} );
+
+}
+
+function changeIconUnbookmark(node) {
+
+  $(node).find('img').attr('src',bookmarkicon);
+  $(node).find('img').attr('title',"Bookmark this level");
+  $(node).find('img').attr('alt',"Bookmark");
+  $(node).attr('bookmarkstate',0);
+  $(node).find('img').hover(function(){$(this).attr('src',bookmarkedicon);}, function(){$(this).attr('src',bookmarkicon);} );
+
+}
+
 
 //Replaces Bookmark links with a custom link + Bookmark button.
 //Also works on single level codes, for Miiverse 'n shit.
@@ -285,10 +325,32 @@ function marioMakerReplaceLinks() {
 
         $(link).append($hoverlink);
 
+//var bookmarkicon = 'https://raw.githubusercontent.com/Difegue/Mario-Maker-Linkifier/master/iconbookmark.png';
+//var bookmarkedicon = 'https://raw.githubusercontent.com/Difegue/Mario-Maker-Linkifier/master/iconbookmarked.png';
+//var unbookmarkicon = 'https://raw.githubusercontent.com/Difegue/Mario-Maker-Linkifier/master/iconunbookmark.png';
+
         //Add the Bookmark link.
-        var string = '<a style="text-decoration: underline; margin-left: 10px; cursor:pointer" >Bookmark</a>';
+        var string = '<a style="text-decoration: underline; margin-left: 5px; cursor:pointer" bookmarkstate="0"><img style="height:18px" title = "Bookmark this level" alt="Bookmark" src="'+bookmarkicon+'" /></a>';
         $bookmarklink = $(string);  //if it's not a jQuery object, make it one
-        $bookmarklink.click(function(){ marioMakerBookmark(courseID); }); //add the function on click
+        $bookmarklink.find('img').hover(function(){$(this).attr('src',bookmarkedicon);}, function(){$(this).attr('src',bookmarkicon);});
+        $bookmarklink.click(function(){ 
+                                  bookmarkstate = $(this).attr('bookmarkstate');
+                                  node = this;
+
+                                  if (bookmarkstate == 0)
+                                    marioMakerBookmark(courseID,function(){
+                                      console.log("bookmarked!");
+                                      changeIconBookmark(node);
+                                    });
+
+                                  if (bookmarkstate == 1)
+                                    marioMakerUnbookmark(courseID,function(){
+                                      console.log("unbookmarked!");
+                                      changeIconUnbookmark(node);
+                                    });
+
+                                }); //add the function on click
+
         $(link).append($bookmarklink); //insert into DOM
 
         return link;
