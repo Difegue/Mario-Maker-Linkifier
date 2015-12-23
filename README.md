@@ -1,11 +1,12 @@
 ![screenshot](http://a.pomf.cat/jbtdvv.png)
 # Mario Maker Linkifier
 Adds a few features to Mario Maker Bookmark links.  
-Not complete yet, but the basic features work.  
 
 What this does :  
-- Modifies supermariomakerbookmark.nintendo.net links by fetching the name/creator/difficulty and showing them **directly** to you.  
-- Adds a bookmark button, allowing you to bookmark a stage without visiting the bookmark website.  
+- Modifies supermariomakerbookmark.nintendo.net links and stage codes by fetching various informations and showing them **directly** to you.  
+- Adds a bookmark button, allowing you to bookmark/unbookmark a stage without visiting the bookmark website.  
+- Crazy aesthetic popups  
+- Works on every site! 4chan, reddit, gameFAQs, miiverse, you name it we got it. (It might even work on too many things. Be sure to disable the script on pages where it bothers you)  
 
 ## Install(I'm just ripping this off the 4chanX install guide)
 

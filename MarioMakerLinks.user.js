@@ -3,10 +3,11 @@
 // @namespace   mml
 // @description Bookmark all those levels without opening a billion tabs.
 // @require http://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js
+// @require https://github.com/Difegue/Mario-Maker-Linkifier/raw/master/css.js
 // @include *
 // @exclude http://supermariomakerbookmark.nintendo.net/*
 // @exclude https://supermariomakerbookmark.nintendo.net/*
-// @version     0.5
+// @version     1.0
 // @grant        GM_xmlhttpRequest
 // @run-at       document-start
 // @icon         https://raw.githubusercontent.com/Difegue/Mario-Maker-Linkifier/master/icon.png
@@ -153,81 +154,157 @@ function marioMakerUnbookmark(courseID,callback) {
 
 
 //For a given HTML node (we created them while parsing the initial HTML document), create a pretty line with the level's name and a bookmark button.
-function marioMakerCreateLink(courseHTMLNode) {
+function marioMakerCreatePopup(courseHTMLNode,courseID) {
 
-    //console.log(currentRequests);
     if(currentRequests > maxRequests) {//Too many requests right now.
-        setTimeout(marioMakerCreateLink, 1000, courseHTMLNode);//wait a second then recheck
-        return;
-    }
+            setTimeout(marioMakerCreateLink, 1000, courseHTMLNode);//wait a second then recheck
+            return;
+        }
 
-    currentRequests++;
-    
-    var courseURL = courseHTMLNode.href;
-    //console.log("Getting info for "+courseURL);
-    
-    //Grab the HTML page matching the course and get course info
-    GM_xmlhttpRequest({
-     method: "GET",
-     url: courseURL,
-     onload: function(xhr) {
+    if ($(courseHTMLNode).attr('smmprocessed') != "true")
+    {
+        courseHTMLNode.textContent = "Working on it...";
 
-        var result = xhr.responseText;
+        currentRequests++;
         
-        var parsed = $('<div/>').append(result);
+        var courseURL = courseHTMLNode.href;
         
-        var course = parsed.find(".course-title");
-        if (course.length == 0) //does the course exist ?
-            {
-                courseHTMLNode.textContent = "Course deleted.";
+        //Grab the HTML page matching the course and get course info
+        GM_xmlhttpRequest({
+         method: "GET",
+         url: courseURL,
+         onload: function(xhr) {
+
+            var result = xhr.responseText;
+            
+            var parsed = $('<div/>').append(result);
+            
+            var course = parsed.find(".course-title");
+            if (course.length == 0) //does the course exist ?
+                {
+                    courseHTMLNode.textContent = "Course deleted.";
+                    $(courseHTMLNode).attr('smmprocessed','true');
+                }
+            else //Course exists, let's get some info ! 
+                {
+                var courseTitle = course.text(); //Name of the level
+                var courseMaker = parsed.find(".name")[0].innerHTML; //Creator of the level
+                var courseDiffLevel = parsed.find(".course-header").text().trim().substring(1); //Difficulty of the level
+                var courseTag = parsed.find("course-tag").text(); //Tag of the level.
+                var isBookmarked = parsed.find(".button.playlist.off").hasClass("disabled"); //Did we bookmark this already ?
+                var isCleared = parsed.find(".course-clear-flag-wrapper").length;
+
+                if (isCleared !=0)
+                    isCleared = true;
+                
+                if (courseDiffLevel == "")
+                    courseDiffLevel = "Unrated";
+
+                if (isBookmarked) //we can change the bookmarked setting of the <a> button appropriately.
+                  changeIconBookmark($(courseHTMLNode).next());
+
+
+                var glyphs = parsed.find("course-image-full-wrapper")[0].match(/typography-[a-z0-9]+/g);
+                var index = 0;
+                var clearString = "";
+                var split;
+
+                if (courseDiffLevel == "Unrated") {
+                  clearString = "??.??";
+                  index++;
+                }
+                else {
+                  while ((split = glyphs[index].split("typography-")[1]) !== "percent") {
+                    if (split === "second") {
+                      clearString += ".";
+                    }
+                    else {
+                      clearString += split;
+                    }
+                    index++;
+                  }
+                  index += 2;
+                }
+                
+                var starString = "";
+                while ((split = glyphs[index].split("typography-")[1]) !== "medium") {
+                  starString += split;
+                  index++;
+                }
+                
+                index++;
+                var playerString = "";
+                while ((split = glyphs[index].split("typography-")[1]) !== "medium") {
+                  playerString += split;
+                  index++;
+                }
+                
+                index++;
+                while ((split = glyphs[index].split("typography-")[1]) !== "medium") {
+                  index++;
+                }
+                index++;
+                var attemptString = "";
+                var numClearsString = "";
+                var numAttemptsString = "";
+                var beforeSlash = true;
+                while (index < glyphs.length) {
+                  split = glyphs[index].split("typography-")[1];
+                  if (split === "slash") {
+                    attemptString += "/";
+                    beforeSlash = false;
+                  }
+                  else {
+                    attemptString += split;
+                    if (beforeSlash) {
+                      numClearsString += split;
+                    }
+                    else {
+                      numAttemptsString += split;
+                    }
+                  }
+                  index++;
+                }
+
+                if (courseDiffLevel == "Unrated") {
+                  if (+numAttemptsString == 0) {
+                    clearString = "0.00";
+                  }
+                  else {
+                    clearString = (+numClearsString / +numAttemptsString * 100).toFixed(2);
+                  }
+                }
+                
+                courseHTMLNode.textContent = courseTitle+" ("+courseDiffLevel+") by "+courseMaker;
                 $(courseHTMLNode).attr('smmprocessed','true');
-            }
-        else //Course exists, let's get some info ! 
-            {
-            var courseTitle = course.text();
-            var courseMaker = parsed.find(".name")[0].innerHTML;
-            var courseDiffLevel = parsed.find(".course-header").text().trim().substring(1);
-            var isBookmarked = parsed.find(".button.playlist.off").hasClass("disabled");
-            
-            console.log(parsed.find(".button .playlist .off"));
+                
+                var popupHTML = buildPopup(courseID,courseTitle,courseDiffLevel, clearString,numClearsString+" / "+numAttemptsString,isCleared,starString,playerString,courseTag, courseMaker);
 
-            if (courseDiffLevel == "")
-                courseDiffLevel = "Unrated";
+                $popup = $(popupHTML);
 
-            if (isBookmarked)
-            {
-              //we can change the bookmarked setting of the <a> button appropriately.
-              changeIconBookmark($(courseHTMLNode).next());
+                console.log(popupHTML);
 
-            }
-       
-            //console.log("got info: "+courseTitle+" ("+courseDiffLevel+") by "+courseMaker);
+                }
+                
+            //Request is done
+            currentRequests--;
             
-            courseHTMLNode.textContent = courseTitle+" ("+courseDiffLevel+") by "+courseMaker;
-            $(courseHTMLNode).attr('smmprocessed','true');
+            },
+         onerror: function(xhr) {
+         
+            courseHTMLNode.textContent = "Error processing this course.";
+            currentRequests--;
+            totalRequests--;
+            },
             
-            }
-            
-        //Request is done
-        currentRequests--;
-        
-        },
-     onerror: function(xhr) {
-     
-        courseHTMLNode.textContent = "Error processing this course.";
-        $(courseHTMLNode).attr('smmprocessed','true');
-        currentRequests--;
-        totalRequests--;
-        },
-        
-     ontimeout: function(xhr) {
-     
-        courseHTMLNode.textContent = "Timed out processing this course.";
-        $(courseHTMLNode).attr('smmprocessed','true');
-        currentRequests--;
-        totalRequests--;   
-        },
-      });
+         ontimeout: function(xhr) {
+            courseHTMLNode.textContent = "Timed out processing this course.";
+            currentRequests--;
+            totalRequests--;   
+            },
+
+          });
+    }
 
     return;
 }
@@ -301,7 +378,7 @@ function changeIconUnbookmark(node) {
 }
 
 
-//Replaces Bookmark links with a custom link + Bookmark button.
+//Replaces Bookmark links with a custom link + Bookmark button. 
 //Also works on single level codes, for Miiverse 'n shit.
 //a typical SMM Bookmark link is https://supermariomakerbookmark.nintendo.net/courses/7829-0000-0047-74F8
 function marioMakerReplaceLinks() {
@@ -321,7 +398,10 @@ function marioMakerReplaceLinks() {
 
         var hoverhtml = '<a smmloaded="true" href="https://supermariomakerbookmark.nintendo.net/courses/'+courseID+'">Hover for Level Info('+courseID+')</a>';
         $hoverlink = $(hoverhtml);
-        $hoverlink.hover(function(){marioMakerCreateLink(this);}, function(){});
+        $hoverlink.hover(function(){
+                                marioMakerCreatePopup(this,courseID); 
+                                marioMakerShowPopup(this);
+                              }, function(){marioMakerHidePopup(this);});
 
         $(link).append($hoverlink);
 
@@ -365,5 +445,6 @@ function marioMakerReplaceLinks() {
 
 
 console.log("Executing SMM Linkifier v1...");
+addCss();
 var refresh = setTimeout(marioMakerReplaceLinks, 2000);
 
