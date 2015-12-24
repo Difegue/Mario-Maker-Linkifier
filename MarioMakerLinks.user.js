@@ -6,7 +6,7 @@
 // @include *
 // @exclude http://supermariomakerbookmark.nintendo.net/*
 // @exclude https://supermariomakerbookmark.nintendo.net/*
-// @version     1.2
+// @version     1.3
 // @grant        GM_xmlhttpRequest
 // @run-at       document-start
 // @icon         https://raw.githubusercontent.com/Difegue/Mario-Maker-Linkifier/master/icon.png
@@ -19,19 +19,12 @@ var parseInterval = 5000;
 //Maximum number of simultaneous requests to bookmark website. You can up this if your browser handles it.
 var maxRequests = 5;
 var currentRequests = 0;
-var totalRequests = 0;
-
-//All the course images are hosted there. Pretty handy.
-var thumbLink = "https://dypqnhofrd2x2.cloudfront.net/";
 
 //Shamelessly stealing this
 var codeRegex = /([a-fA-F0-9]{4}-){3}[a-fA-F0-9]{4}/g;
 var courseRegex = /((https?:\/\/)?supermariomakerbookmark.nintendo.net\/(courses)\/)?([a-fA-F0-9]{4}-){3}[a-fA-F0-9]{4}/g;
 var profileRegex = /(https?:\/\/)?supermariomakerbookmark.nintendo.net\/(profile)\/[_\-a-zA-Z0-9]+/g;
 
-//Ripped straight off the SMM website.
-var starSVG = '<svg viewBox="0 0 40.9 40" xmlns="http://www.w3.org/2000/svg"><path d="M40.8 15.1c-.4-1.2-1.5-1.9-2.7-1.9H26.9L23.2 1.9C22.8.8 21.7 0 20.5 0c-1.2 0-2.3.8-2.7 1.9L14 13.1H2.8c-1.2 0-2.3.8-2.7 1.9-.4 1.2 0 2.4 1 3.2l8.9 6.7-3.4 11.4c-.4 1.2.1 2.4 1.1 3.1 1 .7 2.3.7 3.3 0l9.5-6.8 9.6 6.9c.5.4 1.1.5 1.7.5.6 0 1.2-.2 1.7-.5 1-.7 1.4-2 1.1-3.1L30.9 25l8.9-6.7c1-.8 1.4-2.1 1-3.2z" fill="#A58C26"/></svg>';
-var playersSVG = '<svg viewBox="0 0 47.4 40" xmlns="http://www.w3.org/2000/svg"><g fill="#A58C26"><path d="M16.7 39.9c-3.7.7-7.1-2.1-8.9-8.2C5.4 23.6 3.3 21 2.9 16S12 3.8 17.6 7.2s1.1 12.1.6 14.2c-.7 3.3 0 4.5 1.8 7.8 2.6 4.7 1 9.8-3.3 10.7z"/><circle r="3" cy="3" cx="17.7"/><circle r="2.1" cy="3.8" cx="11.1"/><circle r="1.8" cy="5.9" cx="6.7"/><circle r="1.6" cy="8.9" cx="3.5"/><circle r="1.4" cy="12.4" cx="1.4"/><path d="M30.7 39.9c3.7.7 7.1-2.1 8.9-8.2 2.4-8.1 4.5-10.7 5-15.7S35.5 3.8 29.9 7.1s-1.1 12.1-.6 14.2c.7 3.3 0 4.5-1.8 7.8-2.6 4.7-1 9.9 3.2 10.8z"/><circle r="3" cy="3" cx="29.7"/><circle r="2.1" cy="3.8" cx="36.3"/><circle r="1.8" cy="5.9" cx="40.8"/><circle r="1.6" cy="8.9" cx="44"/><circle r="1.4" cy="12.3" cx="46.1"/></g></svg>'
 //Flavor icons.
 var bookmarkicon = 'https://raw.githubusercontent.com/Difegue/Mario-Maker-Linkifier/master/iconbookmark.png';
 var bookmarkedicon = 'https://raw.githubusercontent.com/Difegue/Mario-Maker-Linkifier/master/iconbookmarked.png';
@@ -62,6 +55,7 @@ function marioMakerGetCSRFToken(courseID,callback) {
           else
               {
               alert("Couldn't get token. Please make sure you're logged in to the Mario Maker Bookmark website.");
+              window.open("https://supermariomakerbookmark.nintendo.net/users/auth/nintendo");
               return 0;
               }
 
@@ -307,13 +301,11 @@ function marioMakerCreatePopup(courseHTMLNode,courseID) {
          
             courseHTMLNode.textContent = "Error processing this course.";
             currentRequests--;
-            totalRequests--;
             },
             
          ontimeout: function(xhr) {
             courseHTMLNode.textContent = "Timed out processing this course.";
-            currentRequests--;
-            totalRequests--;   
+            currentRequests--; 
             },
 
           });
@@ -434,10 +426,6 @@ function marioMakerReplaceLinks() {
 
         $(link).append($hoverlink);
 
-//var bookmarkicon = 'https://raw.githubusercontent.com/Difegue/Mario-Maker-Linkifier/master/iconbookmark.png';
-//var bookmarkedicon = 'https://raw.githubusercontent.com/Difegue/Mario-Maker-Linkifier/master/iconbookmarked.png';
-//var unbookmarkicon = 'https://raw.githubusercontent.com/Difegue/Mario-Maker-Linkifier/master/iconunbookmark.png';
-
         //Add the Bookmark link.
         var string = '<a style="text-decoration: underline; margin-left: 5px; cursor:pointer" bookmarkstate="0"><img style="height:18px" title = "Bookmark this level" alt="Bookmark" src="'+bookmarkicon+'" /></a>';
         $bookmarklink = $(string);  //if it's not a jQuery object, make it one
@@ -466,6 +454,24 @@ function marioMakerReplaceLinks() {
 
     });
     
+    //work some xpath for the remaining links (ergo, <a> tags with a bookmark link in their href that aren't the ones we just made.)
+     textNodes = document.evaluate(
+     ".//a[contains(@href,'supermariomakerbookmark.nintendo.net/courses') and not(@smmloaded='true')]",
+     document.body,
+     null,
+     XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+     null);
+
+     for ( var i=0 ; i < textNodes.snapshotLength; i++ )
+     {
+     //Pull out the link and append it to the <a>, the next iteration of the linkifier will then handle it. The original <a> tag isn't destroyed, since it might be part of a sentence and we don't want that wrecked.
+     var thisCourseURL = textNodes.snapshotItem(i);
+     $(thisCourseURL).attr("smmloaded","true");
+     $(thisCourseURL).after("("+thisCourseURL.href+")");
+
+     }
+
+
     //We're done, set a new timeout
     refresh = setTimeout(marioMakerReplaceLinks, parseInterval);
 
