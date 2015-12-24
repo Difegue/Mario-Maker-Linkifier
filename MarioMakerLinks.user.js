@@ -6,7 +6,7 @@
 // @include *
 // @exclude http://supermariomakerbookmark.nintendo.net/*
 // @exclude https://supermariomakerbookmark.nintendo.net/*
-// @version     1.1
+// @version     1.2
 // @grant        GM_xmlhttpRequest
 // @run-at       document-start
 // @icon         https://raw.githubusercontent.com/Difegue/Mario-Maker-Linkifier/master/icon.png
@@ -410,7 +410,8 @@ function marioMakerReplaceLinks() {
 
         var hoverhtml = '<a smmloaded="true" href="https://supermariomakerbookmark.nintendo.net/courses/'+courseID+'">Hover for Level Info('+courseID+')</a>';
         $hoverlink = $(hoverhtml);
-        $hoverlink.hover(function(event){
+
+        $hoverlink[0].addEventListener("mouseenter",function(event){
                                 //if a div with the course ID as its id exists, we already created the popup.
                                 if (document.getElementById(courseID) == null)
                                 {
@@ -422,9 +423,14 @@ function marioMakerReplaceLinks() {
                                   var top = event.clientY +4;
                                   var wh = window.innerHeight;
                                   top = (top + 280 > wh ? wh - 280 : top) + "px";
-                                  document.getElementById(courseID).style="top:"+top+";left:"+left;
+                                  $("#"+courseID+"").attr("style","top:"+top+";left:"+left);
                                 }
-                              }, function(){document.getElementById(courseID).style="display:none"});
+                              });
+
+        $hoverlink[0].addEventListener("mouseleave",function(){
+                              if (document.getElementById(courseID) != null)
+                                $("#"+courseID+"").attr("style","display:none");
+                              });
 
         $(link).append($hoverlink);
 
