@@ -26,7 +26,7 @@ var thumbLink = "https://dypqnhofrd2x2.cloudfront.net/";
 
 //Shamelessly stealing this
 var codeRegex = /([a-fA-F0-9]{4}-){3}[a-fA-F0-9]{4}/g;
-var courseRegex = /(https?:\/\/)?supermariomakerbookmark.nintendo.net\/(courses)\/[_\-a-zA-Z0-9]+/g;
+var courseRegex = /((https?:\/\/)?supermariomakerbookmark.nintendo.net\/(courses)\/)?([a-fA-F0-9]{4}-){3}[a-fA-F0-9]{4}/g;
 var profileRegex = /(https?:\/\/)?supermariomakerbookmark.nintendo.net\/(profile)\/[_\-a-zA-Z0-9]+/g;
 
 //Ripped straight off the SMM website.
@@ -325,22 +325,14 @@ function marioMakerCreatePopup(courseHTMLNode,courseID) {
 
 
 
-
 function replaceInElement(element, find, replace) {
     // iterate over child nodes in reverse, as replacement may increase
     // length of child node list.
+
     for (var i= element.childNodes.length; i-->0;) {
         var child= element.childNodes[i];
 
-          //If we find a wbr tag, we remove it, go back and recheck.
-          if (child.nodeName == "WBR") 
-          {
-            p = child.parentElement;
-            child.parentElement.removeChild(child);
-            p.normalize();
-            //replaceInElement(p, find, replace);
-          }
-          else
+          
             if (child.nodeType==1) { // ELEMENT_NODE
                 var tag= child.nodeName.toLowerCase();
                 if (tag!='style' && tag!='script' && tag!='textarea' && tag!='input' && child.hasAttribute("smmloaded") == false) // special cases, these won't be parsed
@@ -401,13 +393,17 @@ function marioMakerReplaceLinks() {
 
     window.clearTimeout(refresh);
 
-    //console.log("Analyzing links");
+    console.log("Analyzing links");
+
+    //ye ole 4chan special: remove wbr 
+     $(document.body).find('wbr').remove();
+     document.body.normalize();
 
     //Regexing for the level code.
-    replaceInElement(document.body, codeRegex, function(match) {
+    replaceInElement(document.body, courseRegex, function(match) {
 
         var link = document.createElement('span');
-        var courseID = match[0];
+        var courseID = match[0].substr(match[0].length - 19);
         //console.log(courseID);
 
         $(link).append('<img style="margin-right: 3px;" src="http://supermariomakerbookmark.nintendo.net/assets/favicon/favicon-6529ac1b94d398a37ceabd51acb07a94.ico" />');
@@ -492,6 +488,7 @@ function addCss() {
             text-align: left; \
             box-sizing: content-box;\
             margin: none;\
+            box-shadow:0 5px 15px 0 rgba(0, 0, 0, 0.16), 0 2px 15px 0 rgba(0, 0, 0, 0.12);\
             } \
         .panelTop { height:186px; border-top-left-radius:10px;border-top-right-radius:10px; } \
         .panelThumb { width:248px;height:186px;} \

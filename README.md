@@ -22,3 +22,5 @@ Install [Greasemonkey](https://addons.mozilla.org/en-US/firefox/addon/greasemonk
 ### Chromium
 You can use the [userscript](https://github.com/Difegue/Mario-Maker-Linkifier/raw/master/MarioMakerLinks.user.js) with [Tampermonkey](https://tampermonkey.net/). Note: Users of Chromium / Chrome 47+ should upgrade to Tampermonkey 3.12+ due to recent sandbox changes.
 
+## Known Issue  
+If using 4chanX and viewing a level link through the quoted view, the functions won't work.
