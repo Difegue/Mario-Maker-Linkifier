@@ -6,7 +6,7 @@
 // @include *
 // @exclude http://supermariomakerbookmark.nintendo.net/*
 // @exclude https://supermariomakerbookmark.nintendo.net/*
-// @version     1.0
+// @version     1.1
 // @grant        GM_xmlhttpRequest
 // @run-at       document-start
 // @icon         https://raw.githubusercontent.com/Difegue/Mario-Maker-Linkifier/master/icon.png
