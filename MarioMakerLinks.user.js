@@ -6,12 +6,14 @@
 // @include *
 // @exclude http://supermariomakerbookmark.nintendo.net/*
 // @exclude https://supermariomakerbookmark.nintendo.net/*
-// @version     1.3
+// @version     1.31
 // @grant        GM_xmlhttpRequest
 // @run-at       document-start
 // @icon         https://raw.githubusercontent.com/Difegue/Mario-Maker-Linkifier/master/icon.png
 // @updateURL    https://github.com/Difegue/Mario-Maker-Linkifier/raw/master/MarioMakerLinks.user.js
 // ==/UserScript==
+
+
 
 //Time between parsings of the page.
 var parseInterval = 5000;
@@ -46,6 +48,16 @@ function marioMakerGetCSRFToken(courseID,callback) {
           //console.log("> ", data.contents);
           console.log($.parseHTML(result));
           var parsed = $('<div/>').append(result);
+
+          //Check if the user is really logged in. Unlogged users will display the dummy mii image, which has the header-dummy-mii class.
+          var isNotLoggedIn = parsed.find(".header-dummy-mii").length;
+
+          if (isNotLoggedIn !=0) //if the class was found, we're not logged in. 
+          {
+            alert("Please login to the Mario Maker Bookmark website in order to bookmark levels. We're gonna open a popup for you, sit tight !");
+            window.open("https://supermariomakerbookmark.nintendo.net/users/auth/nintendo");
+            return 0;
+          }
 
           var token = "";
           token = parsed.find('meta[name="csrf-token"]').attr('content');
@@ -188,7 +200,7 @@ function marioMakerCreatePopup(courseHTMLNode,courseID) {
                 {
                 var courseTitle = course.text(); //Name of the level
                 var courseMaker = parsed.find(".name")[0].innerHTML; //Creator of the level
-                var courseDiffLevel = parsed.find(".course-header").text().trim().substring(1); //Difficulty of the level
+                var courseDiffLevel = parsed.find(".course-header").text().trim().substring(0); //Difficulty of the level
                 var courseTag = parsed.find(".course-tag:first").text(); //Tag of the level.
                 var isBookmarked = parsed.find(".button.playlist.off").hasClass("disabled"); //Did we bookmark this already ?
                 var isCleared = parsed.find(".course-clear-flag-wrapper").length;
@@ -202,82 +214,76 @@ function marioMakerCreatePopup(courseHTMLNode,courseID) {
                 if (isBookmarked) //we can change the bookmarked setting of the <a> button appropriately.
                   changeIconBookmark($(courseHTMLNode).next());
 
-
-                var glyphs = xhr.responseText.split('<div class="course-image-full-wrapper">')[0].match(/typography-[a-z0-9]+/g);
-                var index = 0;
+                //Time to dig into the numbers. Luckily, while being svg, numbers on the bookmark site have a typography-X class, X being the actual number.
                 var clearString = "";
-                var split;
-
-                if (courseDiffLevel == "Unrated") {
-                  clearString = "??.??";
-                  index++;
-                }
-                else {
-                  while ((split = glyphs[index].split("typography-")[1]) !== "percent") {
-                    if (split === "second") {
-                      clearString += ".";
-                    }
-                    else {
-                      clearString += split;
-                    }
-                    index++;
-                  }
-                  index += 2;
-                }
-                
                 var starString = "";
-                while ((split = glyphs[index].split("typography-")[1]) !== "medium") {
-                  starString += split;
-                  index++;
-                }
-                
-                index++;
                 var playerString = "";
-                while ((split = glyphs[index].split("typography-")[1]) !== "medium") {
-                  playerString += split;
-                  index++;
-                }
-                
-                index++;
-                while ((split = glyphs[index].split("typography-")[1]) !== "medium") {
-                  index++;
-                }
-                index++;
                 var attemptString = "";
                 var numClearsString = "";
                 var numAttemptsString = "";
                 var beforeSlash = true;
-                while (index < glyphs.length) {
-                  split = glyphs[index].split("typography-")[1];
+                var split;
+
+                var glyphsClearRate = parsed.find(".clear-rate").html().match(/typography-[a-z0-9]+/g);
+                var glyphsStarCount = parsed.find(".liked-count").html().match(/typography-[a-z0-9]+/g);
+                var glyphsPlayerCount = parsed.find(".played-count").html().match(/typography-[a-z0-9]+/g);
+                var glyphsAttempts = parsed.find(".tried-count").html().match(/typography-[a-z0-9]+/g);
+
+                if (courseDiffLevel == "Unrated")
+                  clearString = "??.??";
+                else {
+                  while ((split = glyphsClearRate[0].split("typography-")[1]) !== "percent") {
+                    if (split === "second")
+                      clearString += ".";
+                    else
+                      clearString += split;
+                    glyphsClearRate.shift();
+                  }
+                }
+               
+                while (glyphsStarCount.length > 0)
+                {
+                  split = glyphsStarCount[0].split("typography-")[1];
+                  glyphsStarCount.shift(); 
+                  starString += split;
+                }
+                
+                while (glyphsPlayerCount.length > 0)
+                {
+                  split = glyphsPlayerCount[0].split("typography-")[1];
+                  glyphsPlayerCount.shift(); 
+                  playerString += split;
+                }
+                
+                while (glyphsAttempts.length > 0) {
+                  split = glyphsAttempts[0].split("typography-")[1];
                   if (split === "slash") {
                     attemptString += "/";
                     beforeSlash = false;
                   }
                   else {
-                    attemptString += split;
+                    attemptString += split; //General string of clears/attempts
                     if (beforeSlash) {
-                      numClearsString += split;
+                      numClearsString += split; //Number of clears for calculation
                     }
                     else {
-                      numAttemptsString += split;
+                      numAttemptsString += split; //Number of attempts for calculation
                     }
                   }
-                  index++;
+                  glyphsAttempts.shift();
                 }
 
                 if (courseDiffLevel == "Unrated") {
-                  if (+numAttemptsString == 0) {
+                  if (+numAttemptsString == 0) { //can't divide by zero here woops
                     clearString = "0.00";
                   }
-                  else {
+                  else { //attempt at calculating clear rate
                     clearString = (+numClearsString / +numAttemptsString * 100).toFixed(2);
                   }
                 }
                 
+                //We edit the link's text and build the popup
                 courseHTMLNode.textContent = courseTitle+" ("+courseDiffLevel+") by "+courseMaker;
-                
-                //console.log("infos are "+courseID+courseTitle+courseDiffLevel+" "+clearString+" "+numClearsString+" / "+numAttemptsString+" "+isCleared+" "+starString+" "+playerString+" "+courseTag+" "+courseMaker);
-
                 var popupHTML = buildPopup(courseID,courseTitle,courseDiffLevel, clearString,numClearsString+" / "+numAttemptsString,isCleared,starString,playerString,courseTag, courseMaker);
 
                 //Our popup as a jquery object
@@ -285,8 +291,6 @@ function marioMakerCreatePopup(courseHTMLNode,courseID) {
                 
                 //Insert it in the document body
                 $(courseHTMLNode).parent().append($popup);
-
-                //Make it pop near the mouse.
                 $popup.attr("style","display:none");
 
                 $(courseHTMLNode).attr('smmprocessed','true');
