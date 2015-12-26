@@ -6,7 +6,7 @@
 // @include *
 // @exclude http://supermariomakerbookmark.nintendo.net/*
 // @exclude https://supermariomakerbookmark.nintendo.net/*
-// @version     1.32
+// @version     1.325
 // @grant        GM_xmlhttpRequest
 // @run-at       document-start
 // @icon         https://raw.githubusercontent.com/Difegue/Mario-Maker-Linkifier/master/icon.png
@@ -224,7 +224,6 @@ function marioMakerCreatePopup(courseHTMLNode,courseID) {
                 var beforeSlash = true;
                 var split;
 
-                var glyphsClearRate = parsed.find(".clear-rate").html().match(/typography-[a-z0-9]+/g);
                 var glyphsStarCount = parsed.find(".liked-count").html().match(/typography-[a-z0-9]+/g);
                 var glyphsPlayerCount = parsed.find(".played-count").html().match(/typography-[a-z0-9]+/g);
                 var glyphsAttempts = parsed.find(".tried-count").html().match(/typography-[a-z0-9]+/g);
@@ -232,6 +231,7 @@ function marioMakerCreatePopup(courseHTMLNode,courseID) {
                 if (courseDiffLevel == "Unrated")
                   clearString = "??.??";
                 else {
+                  var glyphsClearRate = parsed.find(".clear-rate").html().match(/typography-[a-z0-9]+/g); //This is only available when the level has a clear rate
                   while ((split = glyphsClearRate[0].split("typography-")[1]) !== "percent") {
                     if (split === "second")
                       clearString += ".";
