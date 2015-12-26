@@ -6,7 +6,7 @@
 // @include *
 // @exclude http://supermariomakerbookmark.nintendo.net/*
 // @exclude https://supermariomakerbookmark.nintendo.net/*
-// @version     1.31
+// @version     1.32
 // @grant        GM_xmlhttpRequest
 // @run-at       document-start
 // @icon         https://raw.githubusercontent.com/Difegue/Mario-Maker-Linkifier/master/icon.png
@@ -168,7 +168,7 @@ function marioMakerUnbookmark(courseID,callback) {
 function marioMakerCreatePopup(courseHTMLNode,courseID) {
 
     if(currentRequests > maxRequests) {//Too many requests right now.
-            setTimeout(marioMakerCreateLink, 1000, courseHTMLNode);//wait a second then recheck
+            setTimeout(marioMakerCreatePopup, 1000, courseHTMLNode);//wait a second then recheck
             return;
         }
 
@@ -418,7 +418,7 @@ function marioMakerReplaceLinks() {
                                   var left = event.clientX + $hoverlink[0].getBoundingClientRect().right-event.clientX;
                                   var top = event.clientY +4;
                                   var wh = window.innerHeight;
-                                  top = (top + 280 > wh ? wh - 280 : top) + "px";
+                                  top = (top + 280 > wh ? event.clientY - 280 : top) + "px";
                                   $("#"+courseID+"").attr("style","top:"+top+";left:"+left);
                                 }
                               });
