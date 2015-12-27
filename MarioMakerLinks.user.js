@@ -6,7 +6,7 @@
 // @include *
 // @exclude http://supermariomakerbookmark.nintendo.net/*
 // @exclude https://supermariomakerbookmark.nintendo.net/*
-// @version     1.325
+// @version     1.5
 // @grant        GM_xmlhttpRequest
 // @run-at       document-start
 // @icon         https://raw.githubusercontent.com/Difegue/Mario-Maker-Linkifier/master/icon.png
@@ -16,7 +16,7 @@
 
 
 //Time between parsings of the page.
-var parseInterval = 5000;
+var parseInterval = 2000;
 
 //Maximum number of simultaneous requests to bookmark website. You can up this if your browser handles it.
 var maxRequests = 5;
@@ -367,7 +367,7 @@ function changeIconBookmark(node) {
    $(node).find('img').attr('title',"Unbookmark this level");
    $(node).find('img').attr('alt',"Unbookmark");
    $(node).attr('bookmarkstate',1);
-   $(node).find('img').hover(function(){$(this).attr('src',unbookmarkicon);}, function(){$(this).attr('src',bookmarkedicon);} );
+   //$(node).find('img').hover(function(){$(this).attr('src',unbookmarkicon);}, function(){$(this).attr('src',bookmarkedicon);} );
 
 }
 
@@ -377,10 +377,52 @@ function changeIconUnbookmark(node) {
   $(node).find('img').attr('title',"Bookmark this level");
   $(node).find('img').attr('alt',"Bookmark");
   $(node).attr('bookmarkstate',0);
-  $(node).find('img').hover(function(){$(this).attr('src',bookmarkedicon);}, function(){$(this).attr('src',bookmarkicon);} );
+  //$(node).find('img').hover(function(){$(this).attr('src',bookmarkedicon);}, function(){$(this).attr('src',bookmarkicon);} );
 
 }
 
+//Triggered when we hover over a course link.
+function hoverLinkOnMouseEnter(thisNode,event,courseID)
+{
+ 
+    //if a div with the course ID as its id exists, we already created the popup.
+        if (document.getElementById(courseID) == null)
+             {
+                 marioMakerCreatePopup(thisNode,courseID); 
+             }
+        else
+             {
+                 var left = event.clientX + thisNode.getBoundingClientRect().right-event.clientX;
+                 var top = event.clientY +4;
+                 var wh = window.innerHeight;
+                 top = (top + 280 > wh ? event.clientY - 280 : top) + "px";
+                 $("#"+courseID+"").attr("style","top:"+top+";left:"+left);
+             }
+}
+
+//Triggered when we click on the bookmark button next to the link.
+function bookmarkLinkOnClick(node,courseID)
+{
+
+  bookmarkstate = $(node).attr('bookmarkstate');
+
+  if (bookmarkstate == 0)
+    marioMakerBookmark(courseID,function(){
+                                    console.log("bookmarked!");
+                                    changeIconBookmark(node);
+                                    return;
+                                    });
+
+  if (bookmarkstate == 1)
+    marioMakerUnbookmark(courseID,function(){
+                                    console.log("unbookmarked!");
+                                    changeIconUnbookmark(node);
+                                    return;
+                                    });
+
+  return;
+
+}
 
 //Replaces Bookmark links with a custom link + Bookmark button. 
 //Also works on single level codes, for Miiverse 'n shit.
@@ -407,21 +449,7 @@ function marioMakerReplaceLinks() {
         var hoverhtml = '<a smmloaded="true" href="https://supermariomakerbookmark.nintendo.net/courses/'+courseID+'">Hover for Level Info('+courseID+')</a>';
         $hoverlink = $(hoverhtml);
 
-        $hoverlink[0].addEventListener("mouseenter",function(event){
-                                //if a div with the course ID as its id exists, we already created the popup.
-                                if (document.getElementById(courseID) == null)
-                                {
-                                  marioMakerCreatePopup(this,courseID); 
-                                }
-                                else
-                                {
-                                  var left = event.clientX + $hoverlink[0].getBoundingClientRect().right-event.clientX;
-                                  var top = event.clientY +4;
-                                  var wh = window.innerHeight;
-                                  top = (top + 280 > wh ? event.clientY - 280 : top) + "px";
-                                  $("#"+courseID+"").attr("style","top:"+top+";left:"+left);
-                                }
-                              });
+        $hoverlink[0].addEventListener("mouseenter",function(event){hoverLinkOnMouseEnter(this,event,courseID)});
 
         $hoverlink[0].addEventListener("mouseleave",function(){
                               if (document.getElementById(courseID) != null)
@@ -433,24 +461,21 @@ function marioMakerReplaceLinks() {
         //Add the Bookmark link.
         var string = '<a style="text-decoration: underline; margin-left: 5px; cursor:pointer" bookmarkstate="0"><img style="height:18px" title = "Bookmark this level" alt="Bookmark" src="'+bookmarkicon+'" /></a>';
         $bookmarklink = $(string);  //if it's not a jQuery object, make it one
-        $bookmarklink.find('img').hover(function(){$(this).attr('src',bookmarkedicon);}, function(){$(this).attr('src',bookmarkicon);});
-        $bookmarklink.click(function(){ 
-                                  bookmarkstate = $(this).attr('bookmarkstate');
-                                  node = this;
 
-                                  if (bookmarkstate == 0)
-                                    marioMakerBookmark(courseID,function(){
-                                      console.log("bookmarked!");
-                                      changeIconBookmark(node);
-                                    });
+        $bookmarklink.find('img').hover(function(){
+                                                                  if ($(this).parent().attr('bookmarkstate')=="0")
+                                                                     $(this).attr('src',bookmarkedicon);
+                                                                  else
+                                                                     $(this).attr('src',unbookmarkicon);
+                                                                }, 
+                                                      function(){
+                                                                  if ($(this).parent().attr('bookmarkstate')=="0")
+                                                                     $(this).attr('src',bookmarkicon);
+                                                                   else
+                                                                     $(this).attr('src',bookmarkedicon);
+                                                                 });
 
-                                  if (bookmarkstate == 1)
-                                    marioMakerUnbookmark(courseID,function(){
-                                      console.log("unbookmarked!");
-                                      changeIconUnbookmark(node);
-                                    });
-
-                                }); //add the function on click
+        $bookmarklink.click(function(){bookmarkLinkOnClick(this,courseID)}); //add the function on click
 
         $(link).append($bookmarklink); //insert into DOM
 
@@ -472,6 +497,53 @@ function marioMakerReplaceLinks() {
      var thisCourseURL = textNodes.snapshotItem(i);
      $(thisCourseURL).attr("smmloaded","true");
      $(thisCourseURL).after("("+thisCourseURL.href+")");
+
+     }
+
+     //soon(tm)
+     //<a style="color: rgb(0, 0, 0); background-color: rgb(255, 255, 255); float: right; margin-top: 10px; margin-left: 0px; border-width: 10px; padding: 10px; margin-right: 10px;" class="button link">Unbookmark cleared levels</a>
+
+     //Super special 4chanX workaround for inline quoted posts
+     //Re-add the click/hover events if one of the parents has the inline class
+     inlineTextNodes = document.evaluate(
+     ".//div[@class='inline']/div/div/blockquote/span/a[contains(@href,'supermariomakerbookmark.nintendo.net/courses') and (@smmloaded='true')]",
+     document.body,
+     null,
+     XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+     null);
+
+     for (var j=0 ; j < inlineTextNodes.snapshotLength; j++ )
+     {
+       inlineCourseURL = inlineTextNodes.snapshotItem(j);
+
+       //Reapplying the events. putting this.href.match(codeRegex)[0] everywhere because fuck js scopes
+       inlineCourseURL.addEventListener("mouseenter",function(event){
+                                                      hoverLinkOnMouseEnter(this,event,this.href.match(codeRegex)[0])
+                                                    });
+
+       inlineCourseURL.addEventListener("mouseleave",function(){
+                                if (document.getElementById(this.href.match(codeRegex)[0]) != null)
+                                  $("#"+this.href.match(codeRegex)[0]+"").attr("style","display:none");
+                                });
+
+
+      $(inlineCourseURL).next().find('img').hover(function(){
+                                                                  if ($(this).parent().attr('bookmarkstate')=="0")
+                                                                     $(this).attr('src',bookmarkedicon);
+                                                                  else
+                                                                     $(this).attr('src',unbookmarkicon);
+                                                                }, 
+                                                      function(){
+                                                                  if ($(this).parent().attr('bookmarkstate')=="0")
+                                                                     $(this).attr('src',bookmarkicon);
+                                                                   else
+                                                                     $(this).attr('src',bookmarkedicon);
+                                                                 });
+
+
+       $(inlineCourseURL).next().click(function(){ //AND THIS IS TO GO FURTHER BEYOND
+                                            bookmarkLinkOnClick(this,$(this).prev()[0].href.match(codeRegex)[0]) // we're at the bookmark image, grab the previous element which is the link and get its courseID
+                                            }); 
 
      }
 
@@ -611,7 +683,7 @@ function buildPopup(courseID,courseName,levelDiff,clearPercent,clears,clearedByP
     if (clearedByPlayer)
         HTML += '<div style="position:absolute; top:31px;right:0px"><img src="https://raw.githubusercontent.com/Difegue/Mario-Maker-Linkifier/master/flag.png"/></div>';
 
-        HTML += '<div class="courseStatBlock fleft" style="font-size: 25px; width: 100px"><div style="display:inline-block; height: 25px; vertical-align: top; width: 25px;"><svg viewBox="0 0 47.4 40" xmlns="http://www.w3.org/2000/svg"> \
+    HTML += '<div class="courseStatBlock fleft" style="font-size: 25px; width: 100px"><div style="display:inline-block; height: 25px; vertical-align: top; width: 25px;"><svg viewBox="0 0 47.4 40" xmlns="http://www.w3.org/2000/svg"> \
                  <g fill="#000000"><path d="M16.7 39.9c-3.7.7-7.1-2.1-8.9-8.2C5.4 23.6 3.3 21 2.9 16S12 3.8 17.6 7.2s1.1 12.1.6 14.2c-.7 3.3 0 4.5 1.8 7.8 2.6 4.7 1 9.8-3.3 10.7z"/><circle r="3" cy="3" cx="17.7"/><circle r="2.1" cy="3.8" cx="11.1"/><circle r="1.8" cy="5.9" cx="6.7"/><circle r="1.6" cy="8.9" cx="3.5"/><circle r="1.4" cy="12.4" cx="1.4"/><path d="M30.7 39.9c3.7.7 7.1-2.1 8.9-8.2 2.4-8.1 4.5-10.7 5-15.7S35.5 3.8 29.9 7.1s-1.1 12.1-.6 14.2c.7 3.3 0 4.5-1.8 7.8-2.6 4.7-1 9.9 3.2 10.8z"/><circle r="3" cy="3" cx="29.7"/><circle r="2.1" cy="3.8" cx="36.3"/><circle r="1.8" cy="5.9" cx="40.8"/><circle r="1.6" cy="8.9" cx="44"/><circle r="1.4" cy="12.3" cx="46.1"/></g>                       </svg>\
                  </div><div class="courseStat coursePlayers" style="display:inline-block"> '+playerCount+'</div></div></div></div><div class="panelBottom"><div class="panelMsg">'+courseName+'</div>\
                  <div class="panelMaker">Made by '+makerName+'</div></div></div>';
