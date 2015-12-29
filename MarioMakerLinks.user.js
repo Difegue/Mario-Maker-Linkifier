@@ -6,7 +6,7 @@
 // @include *
 // @exclude http://supermariomakerbookmark.nintendo.net/*
 // @exclude https://supermariomakerbookmark.nintendo.net/*
-// @version     1.5
+// @version     1.6
 // @grant        GM_xmlhttpRequest
 // @run-at       document-start
 // @icon         https://raw.githubusercontent.com/Difegue/Mario-Maker-Linkifier/master/icon.png
@@ -16,7 +16,7 @@
 
 
 //Time between parsings of the page.
-var parseInterval = 2000;
+var parseInterval = 10000;
 
 //Maximum number of simultaneous requests to bookmark website. You can up this if your browser handles it.
 var maxRequests = 5;
@@ -434,11 +434,17 @@ function marioMakerReplaceLinks() {
     console.log("Analyzing links");
 
     //ye ole 4chan special: remove wbr 
+    if (window.location.href.indexOf("4chan.org") > -1)
+    {
      $(document.body).find('wbr').remove();
      document.body.normalize();
+    }
 
     //Regexing for the level code.
     replaceInElement(document.body, courseRegex, function(match) {
+
+        //Only add the css if we found one match
+        addCss();
 
         var link = document.createElement('span');
         var courseID = match[0].substr(match[0].length - 19);
@@ -484,69 +490,28 @@ function marioMakerReplaceLinks() {
     });
     
     //work some xpath for the remaining links (ergo, <a> tags with a bookmark link in their href that aren't the ones we just made.)
-     textNodes = document.evaluate(
+    textNodes = document.evaluate(
      ".//a[contains(@href,'supermariomakerbookmark.nintendo.net/courses') and not(@smmloaded='true')]",
      document.body,
      null,
      XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
      null);
 
-     for ( var i=0 ; i < textNodes.snapshotLength; i++ )
-     {
-     //Pull out the link and append it to the <a>, the next iteration of the linkifier will then handle it. The original <a> tag isn't destroyed, since it might be part of a sentence and we don't want that wrecked.
-     var thisCourseURL = textNodes.snapshotItem(i);
-     $(thisCourseURL).attr("smmloaded","true");
-     $(thisCourseURL).after("("+thisCourseURL.href+")");
+    for ( var i=0 ; i < textNodes.snapshotLength; i++ )
+       {
+       //Pull out the link and append it to the <a>, the next iteration of the linkifier will then handle it. The original <a> tag isn't destroyed, since it might be part of a sentence and we don't want that wrecked.
+       var thisCourseURL = textNodes.snapshotItem(i);
+       $(thisCourseURL).attr("smmloaded","true");
+       $(thisCourseURL).after("("+thisCourseURL.href+")");
 
-     }
+       }
 
-     //soon(tm)
-     //<a style="color: rgb(0, 0, 0); background-color: rgb(255, 255, 255); float: right; margin-top: 10px; margin-left: 0px; border-width: 10px; padding: 10px; margin-right: 10px;" class="button link">Unbookmark cleared levels</a>
-
-     //Super special 4chanX workaround for inline quoted posts
-     //Re-add the click/hover events if one of the parents has the inline class
-     inlineTextNodes = document.evaluate(
-     ".//div[@class='inline']/div/div/blockquote/span/a[contains(@href,'supermariomakerbookmark.nintendo.net/courses') and (@smmloaded='true')]",
-     document.body,
-     null,
-     XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
-     null);
-
-     for (var j=0 ; j < inlineTextNodes.snapshotLength; j++ )
-     {
-       inlineCourseURL = inlineTextNodes.snapshotItem(j);
-
-       //Reapplying the events. putting this.href.match(codeRegex)[0] everywhere because fuck js scopes
-       inlineCourseURL.addEventListener("mouseenter",function(event){
-                                                      hoverLinkOnMouseEnter(this,event,this.href.match(codeRegex)[0])
-                                                    });
-
-       inlineCourseURL.addEventListener("mouseleave",function(){
-                                if (document.getElementById(this.href.match(codeRegex)[0]) != null)
-                                  $("#"+this.href.match(codeRegex)[0]+"").attr("style","display:none");
-                                });
-
-
-      $(inlineCourseURL).next().find('img').hover(function(){
-                                                                  if ($(this).parent().attr('bookmarkstate')=="0")
-                                                                     $(this).attr('src',bookmarkedicon);
-                                                                  else
-                                                                     $(this).attr('src',unbookmarkicon);
-                                                                }, 
-                                                      function(){
-                                                                  if ($(this).parent().attr('bookmarkstate')=="0")
-                                                                     $(this).attr('src',bookmarkicon);
-                                                                   else
-                                                                     $(this).attr('src',bookmarkedicon);
-                                                                 });
-
-
-       $(inlineCourseURL).next().click(function(){ //AND THIS IS TO GO FURTHER BEYOND
-                                            bookmarkLinkOnClick(this,$(this).prev()[0].href.match(codeRegex)[0]) // we're at the bookmark image, grab the previous element which is the link and get its courseID
-                                            }); 
-
-     }
-
+    if (textNodes.snapshotLength>0)
+      {
+        //Immediately recall ReplaceLinks and terminate this iteration
+        marioMakerReplaceLinks();
+        return;
+      }
 
     //We're done, set a new timeout
     refresh = setTimeout(marioMakerReplaceLinks, parseInterval);
@@ -690,10 +655,65 @@ function buildPopup(courseID,courseName,levelDiff,clearPercent,clears,clearedByP
     return HTML;
 }
 
+//Super special 4chanX workaround for inline quoted posts
+//Re-add the click/hover events if one of the parents has the inline class
+function inline4ChanXCheck(e) {
+
+if (e.target.className.indexOf("quotelink") !== -1 && e.target.className.indexOf("inlined") !== -1) 
+    {
+
+         inlineTextNodes = document.evaluate(
+         ".//div[@class='inline']/div/div/blockquote/span/a[contains(@href,'supermariomakerbookmark.nintendo.net/courses') and (@smmloaded='true')]",
+         document.body,
+         null,
+         XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+         null);
+
+         for (var j=0 ; j < inlineTextNodes.snapshotLength; j++ )
+         {
+           inlineCourseURL = inlineTextNodes.snapshotItem(j);
+
+           //Reapplying the events. putting this.href.match(codeRegex)[0] everywhere because fuck js scopes
+           inlineCourseURL.addEventListener("mouseenter",function(event){
+                                                          hoverLinkOnMouseEnter(this,event,this.href.match(codeRegex)[0])
+                                                        });
+
+           inlineCourseURL.addEventListener("mouseleave",function(){
+                                    if (document.getElementById(this.href.match(codeRegex)[0]) != null)
+                                      $("#"+this.href.match(codeRegex)[0]+"").attr("style","display:none");
+                                    });
+
+
+          $(inlineCourseURL).next().find('img').hover(function(){
+                                                                      if ($(this).parent().attr('bookmarkstate')=="0")
+                                                                         $(this).attr('src',bookmarkedicon);
+                                                                      else
+                                                                         $(this).attr('src',unbookmarkicon);
+                                                                    }, 
+                                                          function(){
+                                                                      if ($(this).parent().attr('bookmarkstate')=="0")
+                                                                         $(this).attr('src',bookmarkicon);
+                                                                       else
+                                                                         $(this).attr('src',bookmarkedicon);
+                                                                     });
+
+
+           $(inlineCourseURL).next().click(function(){ //AND THIS IS TO GO FURTHER BEYOND
+                                                bookmarkLinkOnClick(this,$(this).prev()[0].href.match(codeRegex)[0]) // we're at the bookmark image, grab the previous element which is the link and get its courseID
+                                                }); 
+
+         }
+
+      }
+
+
+}
 
 
 console.log("Executing SMM Linkifier v1...");
-addCss();
+
 var refresh = setTimeout(marioMakerReplaceLinks, 2000);
 
+if (window.location.href.indexOf("4chan.org") > -1)
+  document.addEventListener("click", inline4ChanXCheck);
 
