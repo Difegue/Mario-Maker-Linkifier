@@ -1,4 +1,6 @@
-![screenshot](http://a.pomf.cat/jbtdvv.png)
+# Now featuring: The Mario Maker Unbookmarker  
+![screenshot](http://a.pomf.cat/oxydih.png)  
+Does what it say on the tin. You can install it **[here](https://github.com/Difegue/Mario-Maker-Linkifier/raw/master/MarioMakerUnbookmarker.user.js)**.  
 
 # Mario Maker Linkifier
 Adds a few features to Mario Maker Bookmark links.  
